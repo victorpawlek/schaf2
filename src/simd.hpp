@@ -5,6 +5,7 @@
 #include<string>
 #include<memory>
 #include <array>
+#include <cstdint>
 
 
 namespace ASC_HPC
