@@ -34,4 +34,3 @@ target_sources (simd_timings PUBLIC src/simd.hpp)
 
 add_executable (timing_mem demos/timing_mem.cpp)
 target_sources (timing_mem PUBLIC src/simd.hpp)
-

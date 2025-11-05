@@ -93,6 +93,57 @@ namespace ASC_HPC
   
   inline SIMD<double,2> hSum (SIMD<double,2> a, SIMD<double,2> b)
   { return vpaddq_f64(a.val(), b.val()); }
+
+  inline SIMD<mask64,2> operator>= (SIMD<double,2> a, SIMD<double,2> b)
+  { return SIMD<mask64,2>(vreinterpretq_s64_u64(vcgeq_f64(a.val(), b.val()))); }
+
+  inline SIMD<mask64,2> operator< (SIMD<double,2> a, SIMD<double,2> b)
+  { return SIMD<mask64,2>(vreinterpretq_s64_u64(vcltq_f64(a.val(), b.val()))); }
+
+  inline SIMD<mask64,2> operator<= (SIMD<double,2> a, SIMD<double,2> b)
+  { return SIMD<mask64,2>(vreinterpretq_s64_u64(vcleq_f64(a.val(), b.val()))); }
+
+  inline SIMD<mask64,2> operator> (SIMD<double,2> a, SIMD<double,2> b)
+  { return SIMD<mask64,2>(vreinterpretq_s64_u64(vcgtq_f64(a.val(), b.val()))); }
+
+  inline SIMD<mask64,2> operator== (SIMD<double,2> a, SIMD<double,2> b)
+  { return SIMD<mask64,2>(vreinterpretq_s64_u64(vceqq_f64(a.val(), b.val()))); }
+
+  inline SIMD<mask64,2> operator!= (SIMD<double,2> a, SIMD<double,2> b)
+  {
+    const uint64x2_t eq = vceqq_f64(a.val(), b.val());
+    const uint64x2_t mask_all = vdupq_n_u64(~uint64_t(0));
+    return SIMD<mask64,2>(vreinterpretq_s64_u64(veorq_u64(eq, mask_all)));
+  }
+
+  inline void transpose (SIMD<double,4> a0, SIMD<double,4> a1, SIMD<double,4> a2, SIMD<double,4> a3,
+                         SIMD<double,4> &b0, SIMD<double,4> &b1, SIMD<double,4> &b2, SIMD<double,4> &b3)
+  {
+    // interleave row pairs and build the columns as SIMD<double,4> composed from 128-bit halves
+    const float64x2_t a0_lo = a0.lo().val();
+    const float64x2_t a0_hi = a0.hi().val();
+    const float64x2_t a1_lo = a1.lo().val();
+    const float64x2_t a1_hi = a1.hi().val();
+    const float64x2_t a2_lo = a2.lo().val();
+    const float64x2_t a2_hi = a2.hi().val();
+    const float64x2_t a3_lo = a3.lo().val();
+    const float64x2_t a3_hi = a3.hi().val();
+
+    const float64x2_t r01_lo_0 = vzip1q_f64(a0_lo, a1_lo);
+    const float64x2_t r01_lo_1 = vzip2q_f64(a0_lo, a1_lo);
+    const float64x2_t r23_lo_0 = vzip1q_f64(a2_lo, a3_lo);
+    const float64x2_t r23_lo_1 = vzip2q_f64(a2_lo, a3_lo);
+
+    const float64x2_t r01_hi_0 = vzip1q_f64(a0_hi, a1_hi);
+    const float64x2_t r01_hi_1 = vzip2q_f64(a0_hi, a1_hi);
+    const float64x2_t r23_hi_0 = vzip1q_f64(a2_hi, a3_hi);
+    const float64x2_t r23_hi_1 = vzip2q_f64(a2_hi, a3_hi);
+
+    b0 = SIMD<double,4>(SIMD<double,2>(r01_lo_0), SIMD<double,2>(r23_lo_0));
+    b1 = SIMD<double,4>(SIMD<double,2>(r01_lo_1), SIMD<double,2>(r23_lo_1));
+    b2 = SIMD<double,4>(SIMD<double,2>(r01_hi_0), SIMD<double,2>(r23_hi_0));
+    b3 = SIMD<double,4>(SIMD<double,2>(r01_hi_1), SIMD<double,2>(r23_hi_1));
+  }
   
 }
 
