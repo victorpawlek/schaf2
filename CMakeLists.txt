@@ -35,3 +35,6 @@ target_sources (simd_timings PUBLIC src/simd.hpp)
 add_executable (timing_mem demos/timing_mem.cpp)
 target_sources (timing_mem PUBLIC src/simd.hpp)
 
+add_executable (sincos_test demos/sincos_test.cpp)
+target_sources (sincos_test PUBLIC src/simd.hpp)
+
