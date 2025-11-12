@@ -5,7 +5,7 @@
 #include<string>
 #include<memory>
 #include <array>
-
+#include <cstdint>
 
 namespace ASC_HPC
 {
@@ -239,7 +239,60 @@ namespace ASC_HPC
   template <typename TA, typename T, size_t S>
   auto operator>= (TA a, const SIMD<T,S> & b)
   { return SIMD<T,S>(a) >= b; }
-  
+
+  //-----------------Sort
+  template <typename T, size_t S>
+  auto simd_min(SIMD<T,S> a, SIMD<T,S> b) {
+    auto ge =(a >=b);
+    return select(ge, b, a); //ge is boolian, hat nur W,F gespeichert
+  }
+
+  template <typename T, size_t S>
+  auto simd_max(SIMD<T,S> a, SIMD<T,S> b) {
+    auto ge =(a >=b);
+    return select(ge, a, b); // select heist, wenn ge wahr dann nehme a sonst b
+  }
+
+  template <typename T>
+  T simd_min(T a, T b) { return (a>=b) ? b : a; }
+
+  template <typename T>
+  T simd_max(T a, T b) { return (a>=b) ? a : b; }
+
+  template <typename T>
+  inline void Sort2( T &a, T &b) {
+    auto mi = simd_min(a,b);
+    auto ma = simd_max(a,b);
+    a=mi;
+    b=ma;
+  }
+
+  template <bool UP, class T>
+  inline void BitonicMerge(T* a, std::size_t n) {
+    if (n <=1 ) return;
+    const std::size_t n2 = n >> 1;
+
+    for (std::size_t i = 0; i < n2; ++i) {
+      if constexpr(UP) {
+        Sort2(a[i],a[i+n2]);
+      } else {
+        Sort2(a[i+n2],a[i]);
+      }
+    }
+    BitonicMerge<UP>(a,n2);
+    BitonicMerge<UP>(a + n2,n2);
+  }
+
+  template<bool UP, class T>
+  inline void BitonicSort(T* a, std::size_t n) {
+    if (n <= 1) return;
+    const std::size_t n2 = n >> 1;
+    BitonicSort<true>(a,n2);
+    BitonicSort<false>(a+n2,n2);
+    BitonicMerge<UP>(a,n);
+  }
+
+
 }
   
   

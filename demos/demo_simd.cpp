@@ -1,6 +1,6 @@
 #include <iostream>
 #include <sstream>
-
+#include <cstdint>
 
 #include <simd.hpp>
 

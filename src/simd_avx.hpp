@@ -2,7 +2,8 @@
 #define SIMD_AVX_HPP
 
 #include <immintrin.h>
-
+#include <cstdint>
+#include <array>
 
 /*
   implementation of SIMDs for Intel-CPUs with AVX support:
@@ -86,6 +87,7 @@ namespace ASC_HPC
     int64_t operator[](size_t i) const { return ((int64_t*)&m_val)[i]; }
   };
   
+  
 
 
   template <int64_t first>
@@ -116,8 +118,6 @@ namespace ASC_HPC
   
   inline auto operator>= (SIMD<double,4> a, SIMD<double,4> b)
   { return SIMD<mask64,4>(_mm256_cmp_pd (a.val(), b.val(), _CMP_GE_OQ)); }
-  
-
   
 }
 

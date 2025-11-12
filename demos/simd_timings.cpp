@@ -108,6 +108,78 @@ auto InnerProduct2 (size_t n, double * px0, double * px1, double * py, size_t dy
 
 int main()
 {
+  int a = 8, b = 2; //Test von Sort2 für ints
+  Sort2(a,b); //erwartet a=2, b=8
+  std::cout << "Sort2 scalar -> a=" << a << "b=" << b << "\n";
+  if (!(a == 2 && b== 8)) {
+    std::cerr << "Sort2 scalar FAILED \n";
+    return 1;
+  }
+
+  SIMD<double,4> va(7, 1, 6, 5);
+  SIMD<double,4> vb(2, 8, 4, 2);
+
+  Sort2(va, vb);
+
+  bool ok = (va[0]==2 && va[1]==1 && va[2]==4 && va[3]==2 && vb[0]==7 && vb[1]==8 && vb[2]==6 && vb[3]==5);
+  std::cout << "Sort2 SIMD<double,4> -> " << (ok ? "OK" : "FAILED") << "\n";
+  if (!ok) return 1;
+
+
+  int arr[8] = {7,2,5,1,9,0,4,3};     // anderer Name als das frühere 'a'
+
+  BitonicSort<true>(arr, 8);
+
+  bool ok_bitonic = true;              // anderer Name als dein früheres 'ok'
+  for (int i = 1; i < 8; ++i) {
+    if (arr[i-1] > arr[i]) { ok_bitonic = false; break; }
+  }
+
+  std::cout << "BitonicSort scalar -> " << (ok_bitonic ? "OK" : "FAILED") << "\n";
+  if (!ok_bitonic) return 1;
+
+  using V = SIMD<double,4>;
+
+  // 8 Vektoren (Länge = 2^k). Jede Lane bekommt eigene Werte damit wir lane-weise sortiert prüfen können.
+  V vec[8] = {
+    V( 7.0,  1.0,  5.0, -2.0), // V(lane 0, lane 1, lane 2, lane 3)
+    V( 2.0,  8.0,  5.0,  9.0),
+    V( 5.0,  5.0,  0.0,  0.0),
+    V( 1.0,  9.0, -3.0,  4.0),
+    V( 9.0,  0.0,  4.0,  3.0),
+    V( 0.0, -1.0,  6.0,  1.0),
+    V( 4.0,  4.0,  2.0,  8.0),
+    V( 3.0,  3.0,  7.0,  2.0),
+  };
+  
+  BitonicSort<true>(vec, 8); // aufwärts sortieren
+
+  bool ok_simd = true; // lane-weise Monotonie prüfen
+  for (int lane = 0; lane < 4; ++lane) {
+    for (int i = 1; i < 8; ++i) {
+      if (vec[i-1][lane] > vec[i][lane]) {
+        ok_simd = false;
+        break;
+      }
+    }
+    if (!ok_simd) break;
+  }
+
+  std::cout << "BitonicSort SIMD<double,4> (asc) -> "
+            << (ok_simd ? "OK" : "FAILED") << "\n";
+  if (!ok_simd) return 1;
+
+  // lane 0 als sortierte Liste
+  std::cout << "sorted lane 0: ";
+  for (int i = 0; i < 8; ++i) std::cout << vec[i][0] << " ";
+  std::cout << "\n";
+
+  // lane 1
+  std::cout << "sorted lane 1: ";
+  for (int i = 0; i < 8; ++i) std::cout << vec[i][1] << " ";
+  std::cout << "\n";
+
+
 
   cout << "timing daxpy" << endl;  
   for (size_t n = 16; n <= 1024; n*= 2)
@@ -174,7 +246,7 @@ int main()
 
   
 
-  constexpr size_t SW=4;
+  constexpr size_t SW=2;
   cout << "timing inner product 1x" << SW << endl;
   for (size_t n = 16; n <= 1024; n*= 2)
     {
