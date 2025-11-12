@@ -169,16 +169,61 @@ namespace ASC_HPC
   auto operator*(double a, SIMD<T, 1> b) { return SIMD<T, 1>(a * b.val()); }
 
   template <typename T, size_t S>
+  auto operator*(SIMD<T, S> a, double b)
+  {
+    return SIMD<T, S>(a.lo() * b, a.hi() * b);
+  }
+
+  template <typename T>
+  auto operator*(SIMD<T, 1> a, double b)
+  {
+    return SIMD<T, 1>(a.val() * b);
+  }
+
+  template <typename T, size_t S>
   auto operator+=(SIMD<T, S> &a, SIMD<T, S> b)
   {
     a = a + b;
     return a;
   }
 
+  template <std::size_t N>
+  SIMD<int64_t, N> operator&(SIMD<int64_t, N> a, SIMD<int64_t, N> b)
+  {
+    if constexpr (N == 1)
+      return SIMD<int64_t, 1>(a[0] & b[0]);
+    else
+      return SIMD<int64_t, N>(a.lo() & b.lo(), a.hi() & b.hi());
+  }
+
+  template <std::size_t N>
+  SIMD<mask64, N> operator==(SIMD<int64_t, N> a, SIMD<int64_t, N> b)
+  {
+    if constexpr (N == 1)
+      return SIMD<mask64, 1>(a[0] == b[0]);
+    else
+      return SIMD<mask64, N>(a.lo() == b.lo(), a.hi() == b.hi());
+  }
+
   template <typename T, size_t S>
-  auto operator-(SIMD<T, S> a, SIMD<T, S> b) { a.lo() - b.lo(), a.hi() - b.hi(); }
+  auto operator-(SIMD<T, S> a, SIMD<T, S> b)
+  {
+    return SIMD<T, S>(a.lo() - b.lo(), a.hi() - b.hi());
+  }
   template <typename T>
   auto operator-(SIMD<T, 1> a, SIMD<T, 1> b) { return SIMD<T, 1>(a.val() - b.val()); }
+
+  template <typename T, size_t S>
+  auto operator-(SIMD<T, S> a)
+  {
+    return SIMD<T, S>(-a.lo(), -a.hi());
+  }
+
+  template <typename T>
+  auto operator-(SIMD<T, 1> a)
+  {
+    return SIMD<T, 1>(-a.val());
+  }
 
   template <typename T, size_t S>
   auto operator<(SIMD<T, S> a, SIMD<T, S> b)
@@ -276,6 +321,89 @@ namespace ASC_HPC
     return SIMD<T, S>(a) >= b;
   }
 
+  static constexpr double sincof[] = {
+      1.58962301576546568060E-10,
+      -2.50507477628578072866E-8,
+      2.75573136213857245213E-6,
+      -1.98412698295895385996E-4,
+      8.33333333332211858878E-3,
+      -1.66666666666666307295E-1,
+  };
+
+  static constexpr double coscof[6] = {
+      -1.13585365213876817300E-11,
+      2.08757008419747316778E-9,
+      -2.75573141792967388112E-7,
+      2.48015872888517045348E-5,
+      -1.38888888888730564116E-3,
+      4.16666666666665929218E-2,
+  };
+
+  template <std::size_t N>
+  auto sincos_reduced(SIMD<double, N> x);
+
+  // definition
+  template <std::size_t N>
+  auto sincos_reduced(SIMD<double, N> x)
+  {
+    if constexpr (N == 1)
+    {
+      const double xd = x[0];
+      const double x2 = xd * xd;
+
+      double s = (((((sincof[0] * x2 + sincof[1]) * x2 + sincof[2]) * x2 + sincof[3]) * x2 + sincof[4]) * x2 + sincof[5]);
+      s = xd + xd * xd * xd * s;
+
+      double c = (((((coscof[0] * x2 + coscof[1]) * x2 + coscof[2]) * x2 + coscof[3]) * x2 + coscof[4]) * x2 + coscof[5]);
+      c = 1.0 - 0.5 * x2 + x2 * x2 * c;
+
+      return std::tuple{SIMD<double, 1>(s), SIMD<double, 1>(c)};
+    }
+    else
+    {
+      auto [s_lo, c_lo] = sincos_reduced(x.lo());
+      auto [s_hi, c_hi] = sincos_reduced(x.hi());
+      return std::tuple{SIMD<double, N>(s_lo, s_hi), SIMD<double, N>(c_lo, c_hi)};
+    }
+  }
+
+  template <std::size_t N>
+  SIMD<double, N> round(SIMD<double, N> x)
+  {
+    if constexpr (N == 1)
+      return SIMD<double, 1>(std::round(x[0]));
+    else
+      return SIMD<double, N>(round(x.lo()), round(x.hi()));
+  }
+
+  template <std::size_t N>
+  SIMD<int64_t, N> lround(SIMD<double, N> x)
+  {
+    if constexpr (N == 1)
+      // scalar fallback
+      return SIMD<int64_t, 1>(std::lround(x[0]));
+    else
+      // recursively combine low/high halves
+      return SIMD<int64_t, N>(lround(x.lo()), lround(x.hi()));
+  }
+
+  template <int N>
+  auto sincos(SIMD<double, N> x)
+  {
+    using ASC_HPC::round; // 👈 bring namespace version into scope
+    SIMD<double, N> y = round((2 / M_PI) * x);
+    SIMD<int64_t, N> q = lround(y);
+
+    auto [s1, c1] = sincos_reduced(x - (M_PI / 2) * y);
+
+    auto s2 = select((q & SIMD<int64_t, N>(int64_t(1))) == SIMD<int64_t, N>(int64_t(0)), s1, c1);
+    auto s = select((q & SIMD<int64_t, N>(int64_t(2))) == SIMD<int64_t, N>(int64_t(0)), s2, -s2);
+
+    auto c2 = select((q & SIMD<int64_t, N>(int64_t(1))) == SIMD<int64_t, N>(int64_t(0)), c1, -s1);
+    auto c = select((q & SIMD<int64_t, N>(int64_t(2))) == SIMD<int64_t, N>(int64_t(0)), c2, -c2);
+
+    return std::tuple{s, c};
+  }
 }
 
 #ifdef __AVX__

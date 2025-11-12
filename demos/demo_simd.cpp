@@ -66,7 +66,7 @@ int main()
 
   cout << "select(mask, a, b) = " << select(mask, a, b) << endl;
 
-  SIMD<double, 4> a0(1., 2., 3., 4.);
+  SIMD<double, 4> a0(0.5, 2., 3., 4.);
   SIMD<double, 4> a1(5., 6., 7., 8.);
   SIMD<double, 4> a2(9., 10., 11., 12.);
   SIMD<double, 4> a3(13., 14., 15., 16.);
@@ -77,5 +77,6 @@ int main()
   SIMD<double, 4> b3(0., 0., 0., 0.);
 
   transpose(a0, a1, a2, a3, b0, b1, b2, b3);
-  cout << b0;
+  cout << "FUCK";
+  cout << std::get<0>(sincos<4>(a0));
 }

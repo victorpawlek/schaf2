@@ -75,6 +75,37 @@ namespace ASC_HPC
     }
   };
 
+  template <>
+  class SIMD<int64_t, 2>
+  {
+    int64x2_t m_val;
+
+  public:
+    static constexpr std::size_t S1 = 1; // <-- value
+    static constexpr std::size_t S2 = 1; // <-- value
+
+    SIMD() = default;
+    SIMD(const SIMD &) = default;
+    SIMD(int64x2_t v) : m_val(v) {}
+    SIMD(int64_t v) : m_val(vdupq_n_s64(v)) {}
+    SIMD(SIMD<int64_t, 1> lo, SIMD<int64_t, 1> hi)
+    {
+      int64_t vals[2] = {lo[0], hi[0]};
+      m_val = vld1q_s64(vals);
+    }
+
+    static constexpr std::size_t size() { return 2; }
+    auto val() const { return m_val; }
+
+    const int64_t *ptr() const { return reinterpret_cast<const int64_t *>(&m_val); }
+    int64_t operator[](std::size_t i) const { return ptr()[i]; }
+
+    void store(int64_t *p) const { vst1q_s64(p, m_val); }
+
+    SIMD<int64_t, 1> lo() const { return SIMD<int64_t, 1>(ptr()[0]); }
+    SIMD<int64_t, 1> hi() const { return SIMD<int64_t, 1>(ptr()[1]); }
+  };
+
   inline auto operator+(SIMD<double, 2> a, SIMD<double, 2> b) { return SIMD<double, 2>(a.val() + b.val()); }
   inline auto operator-(SIMD<double, 2> a, SIMD<double, 2> b) { return SIMD<double, 2>(a.val() - b.val()); }
 
@@ -114,6 +145,27 @@ namespace ASC_HPC
   inline SIMD<double, 2> hSum(SIMD<double, 2> a, SIMD<double, 2> b)
   {
     return vpaddq_f64(a.val(), b.val());
+  }
+
+  inline SIMD<double, 2> round(SIMD<double, 2> x)
+  {
+    return vrndnq_f64(x.val());
+  }
+
+  inline SIMD<int64_t, 2> lround(SIMD<double, 2> x)
+  {
+    return vcvtq_s64_f64(x.val());
+  }
+
+  inline SIMD<int64_t, 2> operator&(SIMD<int64_t, 2> a, SIMD<int64_t, 2> b)
+  {
+    return SIMD<int64_t, 2>(vandq_s64(a.val(), b.val()));
+  }
+
+  // elementwise equality (returns mask)
+  inline SIMD<mask64, 2> operator==(SIMD<int64_t, 2> a, SIMD<int64_t, 2> b)
+  {
+    return SIMD<mask64, 2>(vceqq_s64(a.val(), b.val()));
   }
 
   void transpose(SIMD<double, 4> a0, SIMD<double, 4> a1, SIMD<double, 4> a2, SIMD<double, 4> a3,
