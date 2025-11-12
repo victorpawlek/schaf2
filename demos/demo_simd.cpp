@@ -77,6 +77,5 @@ int main()
   SIMD<double, 4> b3(0., 0., 0., 0.);
 
   transpose(a0, a1, a2, a3, b0, b1, b2, b3);
-  cout << "FUCK";
   cout << std::get<0>(sincos<4>(a0));
 }
