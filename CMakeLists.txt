@@ -38,3 +38,9 @@ target_sources (timing_mem PUBLIC src/simd.hpp)
 add_executable (sincos_test demos/sincos_test.cpp)
 target_sources (sincos_test PUBLIC src/simd.hpp)
 
+add_executable(parallel_matrix demos/parallel_matrix.cpp src/timer.cpp src/taskmanager.cpp)
+target_sources(parallel_matrix PUBLIC src/simd.hpp src/taskmanager.hpp src/timer.hpp src/simd_matrix.hpp)
+
+add_executable(demo_simd_matrix demos/demo_simd_matrix.cpp)
+target_sources(demo_simd_matrix PUBLIC src/simd.hpp src/simd_matrix.hpp)
+

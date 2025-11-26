@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sstream>
+#include <atomic>
 
 
 #include <taskmanager.hpp>
@@ -86,6 +87,10 @@ int main()
       ;
     });
   });
+
+  std::atomic<int> cnt = 0;
+  RunParallel(1000, [&cnt] (int i, int size) { cnt++; });
+  cout << "cnt = " << cnt << endl;
 
 
   
